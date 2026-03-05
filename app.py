@@ -8,7 +8,7 @@ st.title("Saudi Food Delivery Market Dashboard (2023–2025)")
 # تحميل البيانات
 @st.cache_data
 def load_data():
-    df = pd.read_csv("")
+    df = pd.read_csv("/saudi_food_delivery_market_2023_2025.csv")
 df.columns = df.columns.str.strip()
     df["Date"] = pd.to_datetime(df["Date"])
     return df
