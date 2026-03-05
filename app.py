@@ -8,17 +8,17 @@ st.set_page_config(
     layout="wide"
 )
 
-# ستايل بسيط (أزرق وأبيض)
+# تصميم أزرق وأبيض بسيط
 st.markdown("""
 <style>
-.metric-card {
-    background-color:#f0f6ff;
-    padding:20px;
-    border-radius:10px;
-    border:1px solid #d0e2ff;
-}
 h1,h2,h3{
-    color:#0a3d91;
+color:#0a3d91;
+}
+[data-testid="metric-container"]{
+background-color:#f0f6ff;
+border:1px solid #d0e2ff;
+padding:15px;
+border-radius:10px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -30,12 +30,15 @@ st.title("🇸🇦 Saudi Food Delivery Market Dashboard (2023–2025)")
 def load_data():
     df = pd.read_csv("saudi_food_delivery_market_2023_2025.csv")
     df.columns = df.columns.str.strip()
-    df["Date"] = pd.to_datetime(df["Date"])
+    
+    if "Date" in df.columns:
+        df["Date"] = pd.to_datetime(df["Date"])
+        
     return df
 
 df = load_data()
 
-# فلترة المنصة
+# فلتر المنصة
 platform = st.sidebar.selectbox(
     "Select Platform",
     df["Platform"].unique()
@@ -43,15 +46,15 @@ platform = st.sidebar.selectbox(
 
 filtered = df[df["Platform"] == platform]
 
-# مؤشرات
+# المؤشرات
 col1, col2, col3 = st.columns(3)
 
-total_orders = int(filtered["Orders"].sum()) if "Orders" in filtered.columns else 0
-total_revenue = int(filtered["Revenue"].sum()) if "Revenue" in filtered.columns else 0
+orders_total = int(filtered["Orders"].sum()) if "Orders" in filtered.columns else 0
+revenue_total = int(filtered["Revenue"].sum()) if "Revenue" in filtered.columns else 0
 avg_delivery = round(filtered["Delivery_Time_Min"].mean(),1) if "Delivery_Time_Min" in filtered.columns else 0
 
-col1.metric("Total Orders", f"{total_orders:,}")
-col2.metric("Total Revenue (SAR)", f"{total_revenue:,}")
+col1.metric("Total Orders", f"{orders_total:,}")
+col2.metric("Total Revenue (SAR)", f"{revenue_total:,}")
 col3.metric("Avg Delivery Time (min)", avg_delivery)
 
 st.divider()
@@ -59,18 +62,23 @@ st.divider()
 # الرسم الأول
 st.subheader("📈 Monthly Orders")
 
-orders_chart = filtered.groupby("Date")["Orders"].sum()
-st.line_chart(orders_chart)
+if "Orders" in filtered.columns and "Date" in filtered.columns:
+    orders_chart = filtered.groupby("Date")["Orders"].sum()
+    st.line_chart(orders_chart)
+else:
+    st.info("Orders data not available in dataset.")
 
 # الرسم الثاني
 st.subheader("💰 Monthly Revenue")
 
-revenue_chart = filtered.groupby("Date")["Revenue"].sum()
-st.line_chart(revenue_chart)
+if "Revenue" in filtered.columns and "Date" in filtered.columns:
+    revenue_chart = filtered.groupby("Date")["Revenue"].sum()
+    st.line_chart(revenue_chart)
+else:
+    st.info("Revenue data not available in dataset.")
 
 st.divider()
 
 # عرض البيانات
 st.subheader("Dataset Preview")
-
 st.dataframe(filtered, use_container_width=True)
