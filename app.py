@@ -1,9 +1,29 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Saudi Food Delivery Dashboard", layout="wide")
+# إعداد الصفحة
+st.set_page_config(
+    page_title="Saudi Food Delivery Dashboard",
+    page_icon="🍔",
+    layout="wide"
+)
 
-st.title("Saudi Food Delivery Market Dashboard (2023–2025)")
+# ستايل بسيط (أزرق وأبيض)
+st.markdown("""
+<style>
+.metric-card {
+    background-color:#f0f6ff;
+    padding:20px;
+    border-radius:10px;
+    border:1px solid #d0e2ff;
+}
+h1,h2,h3{
+    color:#0a3d91;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.title("🇸🇦 Saudi Food Delivery Market Dashboard (2023–2025)")
 
 # تحميل البيانات
 @st.cache_data
@@ -15,34 +35,42 @@ def load_data():
 
 df = load_data()
 
-# اختيار المنصة
+# فلترة المنصة
 platform = st.sidebar.selectbox(
-    "Choose Platform",
+    "Select Platform",
     df["Platform"].unique()
 )
 
 filtered = df[df["Platform"] == platform]
 
-# مؤشرات سريعة
+# مؤشرات
 col1, col2, col3 = st.columns(3)
 
-orders_total = int(filtered["Orders"].sum()) if "Orders" in filtered.columns else 0
-revenue_total = int(filtered["Revenue"].sum()) if "Revenue" in filtered.columns else 0
+total_orders = int(filtered["Orders"].sum()) if "Orders" in filtered.columns else 0
+total_revenue = int(filtered["Revenue"].sum()) if "Revenue" in filtered.columns else 0
 avg_delivery = round(filtered["Delivery_Time_Min"].mean(),1) if "Delivery_Time_Min" in filtered.columns else 0
 
-col1.metric("Total Orders", orders_total)
-col2.metric("Total Revenue (SAR)", revenue_total)
-col3.metric("Average Delivery Time", avg_delivery)
-st.subheader("Monthly Orders")
+col1.metric("Total Orders", f"{total_orders:,}")
+col2.metric("Total Revenue (SAR)", f"{total_revenue:,}")
+col3.metric("Avg Delivery Time (min)", avg_delivery)
+
+st.divider()
+
+# الرسم الأول
+st.subheader("📈 Monthly Orders")
 
 orders_chart = filtered.groupby("Date")["Orders"].sum()
 st.line_chart(orders_chart)
 
-st.subheader("Monthly Revenue")
+# الرسم الثاني
+st.subheader("💰 Monthly Revenue")
 
 revenue_chart = filtered.groupby("Date")["Revenue"].sum()
 st.line_chart(revenue_chart)
 
+st.divider()
+
+# عرض البيانات
 st.subheader("Dataset Preview")
 
-st.dataframe(filtered)
+st.dataframe(filtered, use_container_width=True)
