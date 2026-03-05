@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# ستايل أزرق وأبيض احترافي
+# ستايل أزرق وأبيض
 st.markdown("""
 <style>
 h1,h2,h3{
@@ -33,8 +33,10 @@ def load_data():
     df.columns = df.columns.str.strip()
     if "Date" in df.columns:
         df["Date"] = pd.to_datetime(df["Date"])
-    if "Year" not in df.columns:
-        df["Year"] = df["Date"].dt.year if "Date" in df.columns else 0
+        df["Year"] = df["Date"].dt.year
+        df["Month"] = df["Date"].dt.month
+    if "City" not in df.columns:
+        df["City"] = "Unknown"
     return df
 
 df = load_data()
@@ -52,12 +54,20 @@ selected_year = st.sidebar.selectbox("Select Year", years) if years else None
 if selected_year:
     filtered = filtered[filtered["Year"] == selected_year]
 
-# مؤشرات رئيسية
-col1, col2, col3 = st.columns(3)
+# فلترة المدينة
+cities = filtered["City"].unique() if "City" in filtered.columns else []
+selected_city = st.sidebar.selectbox("Select City", cities) if cities else None
 
+if selected_city:
+    filtered = filtered[filtered["City"] == selected_city]
+
+# تحديد الأعمدة الصحيحة
 orders_col = "Orders" if "Orders" in filtered.columns else "Orders_Count" if "Orders_Count" in filtered.columns else None
 revenue_col = "Revenue" if "Revenue" in filtered.columns else None
 delivery_col = "Delivery_Time_Min" if "Delivery_Time_Min" in filtered.columns else None
+
+# مؤشرات رئيسية
+col1, col2, col3 = st.columns(3)
 
 total_orders = int(filtered[orders_col].sum()) if orders_col else 0
 total_revenue = int(filtered[revenue_col].sum()) if revenue_col else 0
@@ -69,25 +79,37 @@ col3.metric("Avg Delivery Time (min)", avg_delivery)
 
 st.divider()
 
-# رسم Orders
+# رسومات Orders
 st.subheader("📈 Monthly Orders")
 if orders_col and "Date" in filtered.columns:
     orders_chart = filtered.groupby("Date")[orders_col].sum().reset_index()
-    fig_orders = px.line(orders_chart, x="Date", y=orders_col, title="Monthly Orders", markers=True)
-    fig_orders.update_layout(template="plotly_white", title_font_color="#0a3d91")
+    fig_orders = px.line(orders_chart, x="Date", y=orders_col, markers=True,
+                         title="Monthly Orders", template="plotly_white")
+    fig_orders.update_layout(title_font_color="#0a3d91")
     st.plotly_chart(fig_orders, use_container_width=True)
 else:
     st.info("Orders data not available in dataset.")
 
-# رسم Revenue
+# رسومات Revenue
 st.subheader("💰 Monthly Revenue")
 if revenue_col and "Date" in filtered.columns:
     revenue_chart = filtered.groupby("Date")[revenue_col].sum().reset_index()
-    fig_revenue = px.line(revenue_chart, x="Date", y=revenue_col, title="Monthly Revenue", markers=True)
-    fig_revenue.update_layout(template="plotly_white", title_font_color="#0a3d91")
+    fig_revenue = px.line(revenue_chart, x="Date", y=revenue_col, markers=True,
+                          title="Monthly Revenue", template="plotly_white")
+    fig_revenue.update_layout(title_font_color="#0a3d91")
     st.plotly_chart(fig_revenue, use_container_width=True)
 else:
     st.info("Revenue data not available in dataset.")
+
+# Market Share لكل منصة
+st.subheader("📊 Market Share by Platform")
+if orders_col:
+    market_share = df.groupby("Platform")[orders_col].sum().reset_index()
+    fig_share = px.pie(market_share, names="Platform", values=orders_col,
+                       color_discrete_sequence=px.colors.sequential.Blues)
+    st.plotly_chart(fig_share, use_container_width=True)
+else:
+    st.info("Orders data not available for Market Share.")
 
 st.divider()
 
