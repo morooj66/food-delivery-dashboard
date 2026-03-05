@@ -22,8 +22,11 @@ st.set_page_config(
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv("/saudi_food_delivery_market_2023_2025.csv")
+
+    df = pd.read_csv("saudi_food_delivery_market_2023_2025.csv")
+
     df["Date"] = pd.to_datetime(df["Date"])
+
     return df
 
 df = load_data()
