@@ -1,118 +1,147 @@
+# ===============================
+# Saudi Food Delivery Dashboard
+# ===============================
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# إعداد الصفحة
+# -------------------------------
+# Page Configuration
+# -------------------------------
+
 st.set_page_config(
     page_title="Saudi Food Delivery Dashboard",
-    page_icon="🍔",
+    page_icon="📊",
     layout="wide"
 )
 
-# ستايل أزرق وأبيض
-st.markdown("""
-<style>
-h1,h2,h3{
-color:#0a3d91;
-}
-[data-testid="metric-container"]{
-background-color:#f0f6ff;
-border:1px solid #d0e2ff;
-padding:15px;
-border-radius:10px;
-}
-</style>
-""", unsafe_allow_html=True)
+# -------------------------------
+# Load Dataset
+# -------------------------------
 
-st.title("🇸🇦 Saudi Food Delivery Market Dashboard (2023–2025)")
-
-# تحميل البيانات
 @st.cache_data
 def load_data():
-    df = pd.read_csv("saudi_food_delivery_market_2023_2025.csv")
-    df.columns = df.columns.str.strip()
-    if "Date" in df.columns:
-        df["Date"] = pd.to_datetime(df["Date"])
-        df["Year"] = df["Date"].dt.year
-        df["Month"] = df["Date"].dt.month
-    if "City" not in df.columns:
-        df["City"] = "Unknown"
+    df = pd.read_csv("food_delivery_data.csv")
+    df["Date"] = pd.to_datetime(df["Date"])
     return df
 
 df = load_data()
 
-# فلترة المنصة
-platforms = df["Platform"].unique() if "Platform" in df.columns else []
-selected_platform = st.sidebar.selectbox("Select Platform", platforms)
+# -------------------------------
+# Sidebar Filters
+# -------------------------------
 
-filtered = df[df["Platform"] == selected_platform] if "Platform" in df.columns else df
+st.sidebar.title("Filters")
 
-# فلترة السنة
-years = sorted(filtered["Year"].unique()) if "Year" in filtered.columns else []
-selected_year = st.sidebar.selectbox("Select Year", years) if years else None
+platform_options = ["All"] + list(df["Platform"].unique())
 
-if selected_year:
-    filtered = filtered[filtered["Year"] == selected_year]
+selected_platform = st.sidebar.selectbox(
+    "Select Platform",
+    platform_options
+)
 
-# فلترة المدينة
-cities = filtered["City"].unique() if "City" in filtered.columns else []
-selected_city = st.sidebar.selectbox("Select City", cities) if cities else None
+if selected_platform != "All":
+    df = df[df["Platform"] == selected_platform]
 
-if selected_city:
-    filtered = filtered[filtered["City"] == selected_city]
+# -------------------------------
+# Header
+# -------------------------------
 
-# تحديد الأعمدة الصحيحة
-orders_col = "Orders" if "Orders" in filtered.columns else "Orders_Count" if "Orders_Count" in filtered.columns else None
-revenue_col = "Revenue" if "Revenue" in filtered.columns else None
-delivery_col = "Delivery_Time_Min" if "Delivery_Time_Min" in filtered.columns else None
+st.title("🇸🇦 Saudi Food Delivery Market Dashboard")
+st.markdown("### Market Analysis for Major Delivery Platforms")
 
-# مؤشرات رئيسية
-col1, col2, col3 = st.columns(3)
+st.markdown("---")
 
-total_orders = int(filtered[orders_col].sum()) if orders_col else 0
-total_revenue = int(filtered[revenue_col].sum()) if revenue_col else 0
-avg_delivery = round(filtered[delivery_col].mean(),1) if delivery_col else 0
+# -------------------------------
+# KPI Calculations
+# -------------------------------
+
+total_orders = int(df["Monthly_Orders"].sum())
+total_revenue = int(df["Revenue"].sum())
+avg_delivery_time = round(df["Average_Order_Value_SAR"].mean(), 2)
+avg_rating = round(df["Customer_Retention_Rate"].mean(), 2)
+
+# -------------------------------
+# KPI Cards
+# -------------------------------
+
+col1, col2, col3, col4 = st.columns(4)
 
 col1.metric("Total Orders", f"{total_orders:,}")
 col2.metric("Total Revenue (SAR)", f"{total_revenue:,}")
-col3.metric("Avg Delivery Time (min)", avg_delivery)
+col3.metric("Average Order Value", f"{avg_delivery_time}")
+col4.metric("Customer Retention Rate", f"{avg_rating}")
 
-st.divider()
+st.markdown("---")
 
-# رسومات Orders
-st.subheader("📈 Monthly Orders")
-if orders_col and "Date" in filtered.columns:
-    orders_chart = filtered.groupby("Date")[orders_col].sum().reset_index()
-    fig_orders = px.line(orders_chart, x="Date", y=orders_col, markers=True,
-                         title="Monthly Orders", template="plotly_white")
-    fig_orders.update_layout(title_font_color="#0a3d91")
-    st.plotly_chart(fig_orders, use_container_width=True)
-else:
-    st.info("Orders data not available in dataset.")
+# -------------------------------
+# Monthly Orders Trend
+# -------------------------------
 
-# رسومات Revenue
-st.subheader("💰 Monthly Revenue")
-if revenue_col and "Date" in filtered.columns:
-    revenue_chart = filtered.groupby("Date")[revenue_col].sum().reset_index()
-    fig_revenue = px.line(revenue_chart, x="Date", y=revenue_col, markers=True,
-                          title="Monthly Revenue", template="plotly_white")
-    fig_revenue.update_layout(title_font_color="#0a3d91")
-    st.plotly_chart(fig_revenue, use_container_width=True)
-else:
-    st.info("Revenue data not available in dataset.")
+orders_trend = df.groupby("Date")["Monthly_Orders"].sum().reset_index()
 
-# Market Share لكل منصة
-st.subheader("📊 Market Share by Platform")
-if orders_col:
-    market_share = df.groupby("Platform")[orders_col].sum().reset_index()
-    fig_share = px.pie(market_share, names="Platform", values=orders_col,
-                       color_discrete_sequence=px.colors.sequential.Blues)
-    st.plotly_chart(fig_share, use_container_width=True)
-else:
-    st.info("Orders data not available for Market Share.")
+fig_orders = px.line(
+    orders_trend,
+    x="Date",
+    y="Monthly_Orders",
+    title="Monthly Orders Trend",
+    markers=True
+)
 
-st.divider()
+st.plotly_chart(fig_orders, use_container_width=True)
 
-# عرض جدول البيانات
-st.subheader("Dataset Preview")
-st.dataframe(filtered, use_container_width=True)
+# -------------------------------
+# Revenue by Platform
+# -------------------------------
+
+revenue_platform = df.groupby("Platform")["Revenue"].sum().reset_index()
+
+fig_revenue = px.bar(
+    revenue_platform,
+    x="Platform",
+    y="Revenue",
+    title="Revenue by Platform"
+)
+
+st.plotly_chart(fig_revenue, use_container_width=True)
+
+# -------------------------------
+# Market Share Pie Chart
+# -------------------------------
+
+market_share = df.groupby("Platform")["Monthly_Orders"].sum().reset_index()
+
+fig_market = px.pie(
+    market_share,
+    names="Platform",
+    values="Monthly_Orders",
+    title="Market Share by Platform"
+)
+
+st.plotly_chart(fig_market, use_container_width=True)
+
+# -------------------------------
+# Average Delivery Value Comparison
+# -------------------------------
+
+delivery_compare = df.groupby("Platform")["Average_Order_Value_SAR"].mean().reset_index()
+
+fig_delivery = px.bar(
+    delivery_compare,
+    x="Platform",
+    y="Average_Order_Value_SAR",
+    title="Average Order Value Comparison"
+)
+
+st.plotly_chart(fig_delivery, use_container_width=True)
+
+st.markdown("---")
+
+# -------------------------------
+# Data Table
+# -------------------------------
+
+st.subheader("Dataset Overview")
+
+st.dataframe(df, use_container_width=True)
