@@ -26,10 +26,13 @@ filtered = df[df["Platform"] == platform]
 # مؤشرات سريعة
 col1, col2, col3 = st.columns(3)
 
-col1.metric("Total Orders", int(filtered.get("Orders", 0).sum()))
-col2.metric("Total Revenue (SAR)", int(filtered["Revenue"].sum()))
-col3.metric("Average Delivery Time", round(filtered["Delivery_Time_Min"].mean(), 1))
+orders_total = int(filtered["Orders"].sum()) if "Orders" in filtered.columns else 0
+revenue_total = int(filtered["Revenue"].sum()) if "Revenue" in filtered.columns else 0
+avg_delivery = round(filtered["Delivery_Time_Min"].mean(),1) if "Delivery_Time_Min" in filtered.columns else 0
 
+col1.metric("Total Orders", orders_total)
+col2.metric("Total Revenue (SAR)", revenue_total)
+col3.metric("Average Delivery Time", avg_delivery)
 st.subheader("Monthly Orders")
 
 orders_chart = filtered.groupby("Date")["Orders"].sum()
