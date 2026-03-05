@@ -8,7 +8,8 @@ st.title("Saudi Food Delivery Market Dashboard (2023–2025)")
 # تحميل البيانات
 @st.cache_data
 def load_data():
-    df = pd.read_csv("saudi_food_delivery_market_2023_2025.csv")
+    df = pd.read_csv("")
+df.columns = df.columns.str.strip()
     df["Date"] = pd.to_datetime(df["Date"])
     return df
 
@@ -25,7 +26,7 @@ filtered = df[df["Platform"] == platform]
 # مؤشرات سريعة
 col1, col2, col3 = st.columns(3)
 
-col1.metric("Total Orders", int(filtered["Orders"].sum()))
+col1.metric("Total Orders", int(filtered.get("Orders", 0).sum()))
 col2.metric("Total Revenue (SAR)", int(filtered["Revenue"].sum()))
 col3.metric("Average Delivery Time", round(filtered["Delivery_Time_Min"].mean(),1))
 
